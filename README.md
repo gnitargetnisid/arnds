@@ -1,7 +1,6 @@
-### arnds
-ARNDS [Automatic Reasoning Natural Deduction Solver] is an interactive proof assistant for first order logic. Proofs are established using natural deduction.
+# arnds
+ARNDS [Automatic Reasoning Natural Deduction Solver] is an interactive natural deduction proof assistant for first order logic. This implementation is done for the purposes of the student project on the subject of Automatic Reasoning for the Faculty of Mathematics at University of Belgrade.
 
-* Implemented in C++17 *
 
 ## Description
 ARNDS uses a natural deduction tree which contains premises and formulas. This tree is modified by the user either by adding new premises or deriving previous ones into formulas which extend the tree further. ARNDS supports automatic removal/elimination of all viable premises when the appropriate rules are applied.
@@ -32,7 +31,7 @@ The output file should be located in arnds/code/src/ under the name "arnds".
 ## How to use
 Below is the list of commands and the parameters of these commands which you can use to communicate with ARNDS. Each command should be specified in one line of the input, and its arguments should be separated by '|'. Spaces don't matter as the parser strips them anyway. Same goes for lowercase and uppercase letters.
 
-# Commands
+### Commands
 ```
 Add | [premise]
 ```
@@ -42,7 +41,7 @@ Add a new *[premise]*, instantiate it, and add the instance to the natural deduc
 ``` 
 Print | [what] | [ID]
 ```
-Prints the status of the premise/formula with the following *[ID]*. *[what]* should be one of {'P' -- premise ; 'F' -- formula}. Printed information consists of the status of the node (instance nodes in you want to print the premise state) currently -- this includes the current state (Resolved/Pending) and in case the node is resolved, the ID of the child node.
+Prints the status of the premise/formula with the following *[ID]*. *[what]* should be one of {'P' -- premise ; 'F' -- formula}. Printed information consists of the status of the node (or instance nodes if you want to print the premise state) currently -- this includes the current state (Resolved/Pending) and in case the node is resolved, the ID of the child node.
 
 
 ``` 
@@ -62,38 +61,38 @@ Apply | [rule] | [rule_args] ...
 ```
 Apply the natural deduction rule *[rule]* with *[rule_args]*. Below is the list of rules and arguments that they expect.
 
-# Natural deduction Rules
+### Natural deduction Rules
 Formula nodes and propositions are specified by their IDs. In case there's multiple instances of the same proposition that can be eliminated with the use of the rule, they will all be eliminated.
 
 ``` 
 [IN] | [contradiction_node] | [proposition]
 ```
 - Not Introduction: 
-Expects *[contradiction_node]* to be 'False' and derives the negation of *[proposition]*. Eliminates *[proposition]*
+Expects the formula in *[contradiction_node]* to be 'False' and derives the negation of *[proposition]*. Eliminates *[proposition]*
 
 ```
 [EN] | [formula_node] | [formula_negation_node] 
 ```
 - Not Elimination:
-Expects *[formula_negation_node]* to be a syntactical negation of *[formula_node]*. Derives 'False'.
+Expects the formula in *[formula_negation_node]* to be a syntactical negation of the formula in *[formula_node]*. Derives 'False'.
 
 ``` 
 [IC] | [lhs_node] | [rhs_node] 
 ```
 - Conjunction Introduction:
-Derives conjunction of *[lhs_node]* and *[rhs_node]*.
+Derives conjunction of the formulas in *[lhs_node]* and *[rhs_node]*.
 
 ```
 [ELC] | [conjunction_node] 
 ```
 - Conjunction Elimination LHS:
-Derives the left hand side of the conjunction node *[conjunction_node]*.
+Expects the formula in *[conjunction_node]* to be a conjunction. Derives the left hand side of the formula in *[conjunction_node]*.
 
 ```
 [ERC] | [conjunction_node] 
 ```
 - Conjunction Elimination RHS:
-Derives the right hand side of the conjunction code *[conjunction_node]*.
+Expects the formula in *[conjunction_node]* to be a conjunction. Derives the right hand side of the formula in *[conjunction_node]*.
 
 ``` 
 [ILD] | [lhs_formula_node] | [rhs_formula] 
@@ -142,8 +141,6 @@ Quantifier rules
 - There's support for quantifier rules but they're not thoroughly tested at the moment. I'll update the documentation for them shortly.
 
 
-# Formula syntax
-To parse formulas, function-like syntax is used. For example, And(Or(Not(R), P(x)), Imp(R, P(y))) is an example of one formula.
+### Formula syntax
+To parse formulas, function-like syntax is used. For example, Exists(x, And(Or(Not(R), P(x)), Imp(R, P(y)))) is an example of one formula.
 Namely, supported "functions" are: Not, Or, And, Imp, Forall, Exists. Atoms are expressed using function-like syntax as well, for example R(x, y, z) is an atom. Atoms can have arbitrary arguments, but if they're denoted with the same symbol, they must have the same arity everywhere.
-
-Student project for the Faculty of Mathematics at University of Belgrade.
