@@ -19,8 +19,8 @@ public:
 	Formula GetFormula() const { return m_formula.value(); }
 	std::string GetError() const { return m_error; }
 
-	const AtomMap& GetParsedPredicates() const { return m_parsedPredicates; }
-	const TermMap& GetParsedTerms() const { return m_parsedTerms; }
+	static const AtomMap& GetParsedPredicates() { return m_parsedPredicates; }
+	static const TermMap& GetParsedTerms() { return m_parsedTerms; }
 
 private:
 	/* Parses a single formula/variable/term from the input string */
@@ -44,8 +44,8 @@ private:
 
 	std::string m_error;
 	std::optional<Formula> m_formula;
-	AtomMap m_parsedPredicates;
-	TermMap m_parsedTerms;
+	static AtomMap m_parsedPredicates;
+	static TermMap m_parsedTerms;
 };
 
 template <> std::optional<Variable> FormulaParser::ParseInternal(const std::string& variableString);

@@ -8,6 +8,9 @@
 #include "exists.h"
 #include "forall.h"
 
+AtomMap FormulaParser::m_parsedPredicates = AtomMap();
+TermMap FormulaParser::m_parsedTerms = TermMap();
+
 FormulaParser::FormulaParser(const std::string& formulaString)
 {
 	//Preprocessing
@@ -31,9 +34,23 @@ std::optional<Formula> FormulaParser::ParseInternal<Formula>(const std::string& 
 		case 'F':
 			return std::make_shared<False>();
 		default:
+			if (m_parsedTerms.find(formulaString) != m_parsedTerms.end())
+			{
+				m_error = "Cannot use " + formulaString + " as a relation symbol because there's already a term by the same name.";
+				return std::nullopt;
+			}
+
+			auto existingAtom = m_parsedPredicates.find(formulaString);
+			if (existingAtom != m_parsedPredicates.end() && std::get<1>(existingAtom->second) != 0)
+			{
+				m_error = "Relation symbol " + formulaString + " already exists, but with different arity.";
+				return std::nullopt;
+			}
+
 			auto atom = std::make_shared<Atom>(formulaString, std::vector<Term>());
-			//TO-DO: INSERT ERROR CHECKING FOR ARITY OF THE ATOM
-			m_parsedPredicates[formulaString].push_back(atom);
+			auto& atomIt = m_parsedPredicates[formulaString];
+			std::get<0>(atomIt).push_back(atom);
+			std::get<1>(atomIt) = 0;
 			return atom;
 		}
 	}
@@ -108,8 +125,18 @@ std::optional<Formula> FormulaParser::ParseInternal<Formula>(const std::string& 
 						return std::nullopt;
 					}
 				}
+
+				auto existingAtom = m_parsedPredicates.find(fn_name);
+				if (existingAtom != m_parsedPredicates.end() && std::get<1>(existingAtom->second) != atomTerms.size())
+				{
+					m_error = "Relation symbol " + fn_name + " already exists, but with different arity.";
+					return std::nullopt;
+				}
+
 				auto atom = std::make_shared<Atom>(fn_name, atomTerms);
-				m_parsedPredicates[fn_name].push_back(atom);
+				auto& atomIt = m_parsedPredicates[fn_name];
+				std::get<0>(atomIt).push_back(atom);
+				std::get<1>(atomIt) = atomTerms.size();
 				return atom;
 			}
 			else
@@ -146,6 +173,12 @@ std::optional<Term> FormulaParser::ParseInternal<Term>(const std::string& termSt
 	auto variable = ParseInternal<Variable>(termString);
 	if (variable.has_value())
 	{
+		if (m_parsedPredicates.find(termString) != m_parsedPredicates.end())
+		{
+			m_error = "Symbol " + termString + " already exists, but as a relation symbol. Unable to parse it as a term.";
+			return std::nullopt;
+		}
+
 		auto term = std::make_shared<VariableTerm>(variable.value());
 		m_parsedTerms[termString].push_back(term);
 		return term;
