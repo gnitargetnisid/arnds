@@ -21,6 +21,41 @@ namespace ND
 		return newID;
 	}
 
+	bool Solver::GetAllPremisesEliminated() const
+	{
+		for (const auto& premiseIt : m_premises)
+		{
+			for (const auto& premiseInstance : premiseIt.second->GetInstances())
+			{
+				if (!premiseInstance->GetEliminated())
+				{
+					return false;
+				}
+			}
+		}
+
+		return true;
+	}
+
+	std::optional<std::vector<Formula>> Solver::GetDerivedFormulas() const
+	{
+		if (!GetAllPremisesEliminated())
+		{
+			return std::nullopt;
+		}
+
+		std::vector<Formula> pendingFormulas;
+		for (const auto& formulaNode : m_tree.GetNodes())
+		{
+			if (!formulaNode.second->GetResolved())
+			{
+				pendingFormulas.push_back(formulaNode.second->GetFormula());
+			}
+		}
+
+		return pendingFormulas;
+	}
+
 	bool Solver::ApplyRule(BaseRule& rule, std::string& error)
 	{
 		auto ruleFormula = rule.Apply();

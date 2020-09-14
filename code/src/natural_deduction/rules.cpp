@@ -213,63 +213,50 @@ namespace ND
 		return formula;
 	}
 
+	std::optional<Formula> ContradictionEliminationWithProposition::ApplyInternal()
+	{
+		SolverTreeNode node = GetInputNode<0>();
+		Premise premise = GetPremise<0>();
+
+		if (!node->IsFormulaA<False>())
+		{
+			SetError("The formula you provided is not a contradiction/False.");
+			return std::nullopt;
+		}
+
+		auto premiseInstances = m_tree.GetAlivePremiseAncestors(node->GetID(), premise->GetID());
+
+		if (premiseInstances.empty())
+		{
+			SetError("There are no alive instances of premise [" + std::to_string(premise->GetID()) + "]  in the tree of formula node [" + std::to_string(node->GetID()) + "]");
+			return std::nullopt;
+		}
+
+		for (const auto& premiseInstance : premiseInstances)
+		{
+			EliminatePremiseNode(premiseInstance);
+		}
+
+		return std::make_shared<Not>(premise->GetFormula());
+	}
+
 	std::optional<Formula> TrueIntroduction::ApplyInternal()
 	{
 		return std::make_shared<True>();
 	}
 
-	bool CanConvertFormulaToVariable(Formula formula)
-	{
-		if (!formula->IsA<Atom>())
-		{
-			return false;
-		}
-
-		VariablesSet varset;
-		formula->As<Atom>()->getVars(varset);
-		if (!varset.empty())
-		{
-			return false;
-		}
-
-		return true;
-	}
-
 	std::optional<Formula> ForallIntroduction::ApplyInternal()
 	{
 		SolverTreeNode node = GetInputNode<0>();
-		Formula formulaX = GetFormula<0>();
-		Formula formulaY = GetFormula<1>();
-
-		if (!CanConvertFormulaToVariable(formulaX))
-		{
-			SetError("Provided variable is in an incorrect format. Variable: " + formulaX->getText());
-			return std::nullopt;
-		}
-
-		if (!CanConvertFormulaToVariable(formulaY))
-		{
-			SetError("Provided variable is in an incorrect format. Variable: " + formulaY->getText());
-			return std::nullopt;
-		}
-
-		Atom* atomFormulaX = formulaX->As<Atom>();
-		Atom* atomFormulaY = formulaY->As<Atom>();
-		Variable varX = atomFormulaX->symbol();
-		Variable varY = atomFormulaY->symbol();
+		Variable varX = GetVariable<0>();
+		Variable varY = GetVariable<1>();
 
 		VariablesSet nodeFreeVarset;
 		node->GetFormula()->getVars(nodeFreeVarset, true);
 
 		if (nodeFreeVarset.find(varX) == nodeFreeVarset.end())
 		{
-			SetError("Variable " + atomFormulaX->getText() + " doesn't exist in formula " + node->GetFormula()->getText());
-			return std::nullopt;
-		}
-
-		if (nodeFreeVarset.find(varY) != nodeFreeVarset.end())
-		{
-			SetError("Variable " + atomFormulaY->getText() + " already exists in formula " + node->GetFormula()->getText());
+			SetError("Variable " + varX + " doesn't exist as a free variable in formula " + node->GetFormula()->getText() + ". Automatic renaming is currently not supported.");
 			return std::nullopt;
 		}
 
@@ -288,7 +275,7 @@ namespace ND
 				premiseNode->GetFormula()->getVars(formulaVars, true);
 				if (formulaVars.find(varX) != formulaVars.end())
 				{
-					SetError("Premise [" + std::to_string(premiseNode->GetPremise()->GetID()) + "] Instance [" + std::to_string(premiseNode->GetID()) + "] has " + atomFormulaX->getText() + " as a free variable. This is not allowed.");
+					SetError("Premise [" + std::to_string(premiseNode->GetPremise()->GetID()) + "] Instance [" + std::to_string(premiseNode->GetID()) + "] has " + varX + " as a free variable. This is not allowed.");
 					return std::nullopt;
 				}
 			}
@@ -301,24 +288,16 @@ namespace ND
 	std::optional<Formula> ForallElimination::ApplyInternal()
 	{
 		SolverTreeNode node = GetInputNode<0>();
-		Formula formula = GetFormula<0>();
+		Variable var = GetVariable<0>();
 
 		if (!node->IsFormulaA<Forall>())
 		{
 			SetError("Expected a forall formula. Got: " + node->GetFormula()->getText());
 			return std::nullopt;
 		}
-		
-		if (!CanConvertFormulaToVariable(formula))
-		{
-			SetError("Provided variable is in an incorrect format. Variable: " + formula->getText());
-			return std::nullopt;
-		}
 
 		Forall* forallFormula = node->GetFormula()->As<Forall>();
 		Formula baseFormula = forallFormula->operand();
-		Atom* atomFormula = formula->As<Atom>();
-		Variable var = atomFormula->symbol();
 		
 		VariablesSet baseFormulaVarset;
 		VariablesSet baseFormulaFreeVarset;
@@ -326,7 +305,7 @@ namespace ND
 		baseFormula->getVars(baseFormulaFreeVarset, true);
 		if (baseFormulaVarset.find(var) != baseFormulaVarset.end() && baseFormulaFreeVarset.find(var) == baseFormulaFreeVarset.end())
 		{
-			SetError("Variable " + atomFormula->getText() + " is a bound variable in " + node->GetFormula()->getText());
+			SetError("Variable " + var + " is a bound variable in " + node->GetFormula()->getText());
 			return std::nullopt;
 		}
 
@@ -336,40 +315,15 @@ namespace ND
 	std::optional<Formula> ExistsIntroduction::ApplyInternal()
 	{
 		SolverTreeNode node = GetInputNode<0>();
-		Formula formulaX = GetFormula<0>();
-		Formula formulaY = GetFormula<1>();
+		Variable varX = GetVariable<0>();
+		Variable varY = GetVariable<1>();
 
-		if (!CanConvertFormulaToVariable(formulaX))
-		{
-			SetError("Provided variable is in an incorrect format. Variable: " + formulaX->getText());
-			return std::nullopt;
-		}
-
-		if (!CanConvertFormulaToVariable(formulaY))
-		{
-			SetError("Provided variable is in an incorrect format. Variable: " + formulaY->getText());
-			return std::nullopt;
-		}
-
-		Atom* atomFormulaX = formulaX->As<Atom>();
-		Atom* atomFormulaY = formulaY->As<Atom>();
-		Variable varX = atomFormulaX->symbol();
-		Variable varY = atomFormulaY->symbol();
-
-		VariablesSet nodeVarset;
 		VariablesSet nodeFreeVarset;
-		node->GetFormula()->getVars(nodeVarset);
 		node->GetFormula()->getVars(nodeFreeVarset, true);
 
 		if (nodeFreeVarset.find(varX) == nodeFreeVarset.end())
 		{
-			SetError("Variable " + atomFormulaX->getText() + " doesn't exist as a free variable in formula " + node->GetFormula()->getText());
-			return std::nullopt;
-		}
-		
-		if (nodeVarset.find(varY) != nodeVarset.end())
-		{
-			SetError("Variable " + atomFormulaY->getText() + " exists in " + node->GetFormula()->getText());
+			SetError("Variable " + varX + " doesn't exist as a free variable in formula " + node->GetFormula()->getText() + ". Automatic renaming is currently not supported.");
 			return std::nullopt;
 		}
 
@@ -382,22 +336,13 @@ namespace ND
 		SolverTreeNode existsNode = GetInputNode<0>();
 		SolverTreeNode conclusionNode = GetInputNode<1>();
 		Premise premise = GetPremise<0>();
-		Formula formula = GetFormula<0>();
+		Variable var = GetVariable<0>();
 
 		if (!existsNode->IsFormulaA<Exists>())
 		{
 			SetError("Provided formula is not an exists formula. Formula: " + existsNode->GetFormula()->getText());
 			return std::nullopt;
 		}
-
-		if (!CanConvertFormulaToVariable(formula))
-		{
-			SetError("Provided variable is in an incorrect format. Variable: " + formula->getText());
-			return std::nullopt;
-		}
-
-		Atom* atomFormula = formula->As<Atom>();
-		Variable var = atomFormula->symbol();
 
 		Exists* existsFormula = existsNode->GetFormula()->As<Exists>();
 		Formula baseFormula = existsFormula->operand();
@@ -411,7 +356,7 @@ namespace ND
 		conclusionNode->GetFormula()->getVars(conclusionNodeFreeVarset, true);
 		if (conclusionNodeFreeVarset.find(var) != conclusionNodeFreeVarset.end())
 		{
-			SetError("Found " + atomFormula->getText() + " as a free variable in " + conclusionNode->GetFormula()->getText());
+			SetError("Found " + var + " as a free variable in " + conclusionNode->GetFormula()->getText());
 			return std::nullopt;
 		}
 
@@ -449,7 +394,7 @@ namespace ND
 				premiseNode->GetFormula()->getVars(formulaVars);
 				if (formulaVars.find(var) != formulaVars.end())
 				{
-					SetError("Premise [" + std::to_string(premiseNode->GetPremise()->GetID()) + "] Instance [" + std::to_string(premiseNode->GetID()) + "] has " + atomFormula->getText() + " as a free variable. This is not allowed.");
+					SetError("Premise [" + std::to_string(premiseNode->GetPremise()->GetID()) + "] Instance [" + std::to_string(premiseNode->GetID()) + "] has " + var + " as a free variable. This is not allowed.");
 					return std::nullopt;
 				}
 			}

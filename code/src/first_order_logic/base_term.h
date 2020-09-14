@@ -6,12 +6,11 @@
 #include <memory>
 #include <iostream>
 #include <map>
+#include <vector>
 
 class BaseTerm;
 
 using Term = std::shared_ptr<BaseTerm>;
-
-using TermMap = std::map<Variable, std::vector<Term>>;
 
 using Substitution = std::map<Variable, Term>;
 

@@ -9,7 +9,7 @@
 using Variable = std::string;
 using FunctionSymbol = std::string;
 using RelationSymbol = std::string;
-using Arity = unsigned;
+using Arity = std::size_t;
 using VariablesSet = std::unordered_set<Variable>;
 
 #endif // COMMON_H

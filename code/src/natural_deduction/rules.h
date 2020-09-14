@@ -16,15 +16,34 @@ namespace ND
 		virtual const std::string& GetError() const = 0;
 	};
 
-	template <size_t n_input_nodes, size_t n_premises, size_t n_formulas>
+	template <size_t N, size_t offset = 0>
+	struct RuleHelper
+	{
+		static void ResolveInputNodes(Tuple<N, SolverTreeNode>& nodes)
+		{
+			std::get<offset>(nodes)->Resolve();
+			RuleHelper<N, offset + 1>::ResolveInputNodes(nodes);
+		}
+	};
+
+	template <size_t N>
+	struct RuleHelper<N, N>
+	{
+		static void ResolveInputNodes(Tuple<N, SolverTreeNode>& nodes)
+		{
+		}
+	};
+
+	template <size_t n_input_nodes, size_t n_premises, size_t n_formulas, size_t n_variables>
 	class Rule : public BaseRule
 	{
 	public:
-		Rule(const SolverTree& tree, Tuple<n_input_nodes, SolverTreeNode> nodes, Tuple<n_premises, Premise> premises, Tuple<n_formulas, Formula> formulas)
+		Rule(const SolverTree& tree, Tuple<n_input_nodes, SolverTreeNode> nodes, Tuple<n_premises, Premise> premises, Tuple<n_formulas, Formula> formulas, Tuple<n_variables, Variable> variables)
 			: m_tree(tree)
 			, m_inputNodes(nodes)
 			, m_premises(premises)
 			, m_formulas(formulas)
+			, m_variables(variables)
 		{
 		}
 
@@ -46,6 +65,7 @@ namespace ND
 		static constexpr size_t GetRequiredNodeArgCount() { return n_input_nodes; }
 		static constexpr size_t GetRequiredPremiseArgCount() { return n_premises; }
 		static constexpr size_t GetRequiredFormulaArgCount() { return n_formulas; }
+		static constexpr size_t GetRequiredVariableArgCount() { return n_variables; }
 
 	protected:
 		void SetError(const std::string& error) { m_error = error; }
@@ -56,6 +76,8 @@ namespace ND
 		Premise GetPremise() const { return std::get<i>(m_premises); }
 		template <size_t i>
 		Formula GetFormula() const { return std::get<i>(m_formulas); }
+		template <size_t i>
+		Variable GetVariable() const { return std::get<i>(m_variables); }
 
 		void EliminatePremiseNode(SolverTreePremiseNode node)
 		{
@@ -66,42 +88,39 @@ namespace ND
 		const SolverTree& m_tree;
 
 	private:
-		template <size_t offset = 0>
 		void ResolveInputNodes()
 		{
-			GetInputNode<offset>()->Resolve();
-			ResolveInputNodes<offset + 1>();
+			RuleHelper<n_input_nodes>::ResolveInputNodes(m_inputNodes);
 		}
-		template <>
-		void ResolveInputNodes<n_input_nodes>() {}
 
 		Tuple<n_input_nodes, SolverTreeNode> m_inputNodes;
 		Tuple<n_premises, Premise> m_premises;
 		Tuple<n_formulas, Formula> m_formulas;
+		Tuple<n_variables, Variable> m_variables;
 
 		std::vector<SolverTreePremiseNode> m_eliminatedPremiseNodes;
 		std::string m_error;
 	};
 
 	template <size_t n_input_nodes>
-	class BasicRule : public Rule<n_input_nodes, 0, 0>
+	class BasicRule : public Rule<n_input_nodes, 0, 0, 0>
 	{
 	public:
-		using Rule<n_input_nodes, 0, 0>::Rule;
+		using Rule<n_input_nodes, 0, 0, 0>::Rule;
 	};
 
 	template <size_t n_input_nodes, size_t n_premises>
-	class PremiseEliminationRule : public Rule<n_input_nodes, n_premises, 0>
+	class PremiseEliminationRule : public Rule<n_input_nodes, n_premises, 0, 0>
 	{
 	public:
-		using Rule<n_input_nodes, n_premises, 0>::Rule;
+		using Rule<n_input_nodes, n_premises, 0, 0>::Rule;
 	};
 
 	template <size_t n_input_nodes, size_t n_formulas>
-	class FormulaIntroductionRule : public Rule<n_input_nodes, 0, n_formulas>
+	class FormulaIntroductionRule : public Rule<n_input_nodes, 0, n_formulas, 0>
 	{
 	public:
-		using Rule<n_input_nodes, 0, n_formulas>::Rule;
+		using Rule<n_input_nodes, 0, n_formulas, 0>::Rule;
 	};
 
 	class NotIntroduction : public PremiseEliminationRule<1, 1>
@@ -181,6 +200,13 @@ namespace ND
 		std::optional<Formula> ApplyInternal() override;
 	};
 
+	class ContradictionEliminationWithProposition : public PremiseEliminationRule<1, 1>
+	{
+	public:
+		using PremiseEliminationRule::PremiseEliminationRule;
+		std::optional<Formula> ApplyInternal() override;
+	};
+
 	class TrueIntroduction : public BasicRule<0>
 	{
 	public:
@@ -188,28 +214,28 @@ namespace ND
 		std::optional<Formula> ApplyInternal() override;
 	};
 
-	class ForallIntroduction : public Rule<1, 0, 2>
+	class ForallIntroduction : public Rule<1, 0, 0, 2>
 	{
 	public:
 		using Rule::Rule;
 		std::optional<Formula> ApplyInternal() override;
 	};
 
-	class ForallElimination : public Rule<1, 0, 1>
+	class ForallElimination : public Rule<1, 0, 0, 1>
 	{
 	public:
 		using Rule::Rule;
 		std::optional<Formula> ApplyInternal() override;
 	};
 
-	class ExistsIntroduction : public Rule<1, 0, 2>
+	class ExistsIntroduction : public Rule<1, 0, 0, 2>
 	{
 	public:
 		using Rule::Rule;
 		std::optional<Formula> ApplyInternal() override;
 	};
 
-	class ExistsElimination : public Rule<2, 1, 1>
+	class ExistsElimination : public Rule<2, 1, 0, 1>
 	{
 	public:
 		using Rule::Rule;

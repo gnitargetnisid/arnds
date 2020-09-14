@@ -17,7 +17,7 @@ namespace ND
 	{
 		m_error = "";
 		std::string inputProcessed = input;
-		inputProcessed.erase(std::remove_if(inputProcessed.begin(), inputProcessed.end(), std::isspace), inputProcessed.end());
+		inputProcessed.erase(std::remove_if(inputProcessed.begin(), inputProcessed.end(), [](auto & c) { return std::isspace(c); }), inputProcessed.end());
 		std::transform(inputProcessed.begin(), inputProcessed.end(), inputProcessed.begin(), [](auto & c) { return std::tolower(c); });
 
 		std::vector<std::string> commandArguments;
@@ -168,7 +168,7 @@ namespace ND
 
 		if (parser.Success())
 		{
-			Formula parsedFormula = parser.GetFormula();
+			Formula parsedFormula = parser.GetResult();
 			std::tuple<ID, ID> premiseIDs = m_solver.AddPremise(parsedFormula);
 			std::cout << "Premise [" + std::to_string(std::get<0>(premiseIDs)) + "] added. Premise instance [" + std::to_string(std::get<1>(premiseIDs)) + "] added. Formula: " << parsedFormula->getText() << std::endl;
 			return true;
@@ -310,6 +310,7 @@ namespace ND
 		if (CheckRuleAndApply<ImplicationElimination>("ei", ruleString, ruleArguments, success)) return success;
 		if (CheckRuleAndApply<TrueIntroduction>("it", ruleString, ruleArguments, success)) return success;
 		if (CheckRuleAndApply<ContradictionElimination>("ec", ruleString, ruleArguments, success)) return success;
+		if (CheckRuleAndApply<ContradictionEliminationWithProposition>("ecp", ruleString, ruleArguments, success)) return success;
 		if (CheckRuleAndApply<ForallIntroduction>("if", ruleString, ruleArguments, success)) return success;
 		if (CheckRuleAndApply<ForallElimination>("ef", ruleString, ruleArguments, success)) return success;
 		if (CheckRuleAndApply<ExistsIntroduction>("ie", ruleString, ruleArguments, success)) return success;
@@ -332,7 +333,8 @@ namespace ND
 		constexpr size_t expectedNodeArgCount = T::GetRequiredNodeArgCount();
 		constexpr size_t expectedPremiseArgCount = T::GetRequiredPremiseArgCount();
 		constexpr size_t expectedFormulaArgCount = T::GetRequiredFormulaArgCount();
-		size_t expectedArgCount = expectedNodeArgCount + expectedPremiseArgCount + expectedFormulaArgCount;
+		constexpr size_t expectedVariableArgCount = T::GetRequiredVariableArgCount();
+		size_t expectedArgCount = expectedNodeArgCount + expectedPremiseArgCount + expectedFormulaArgCount + expectedVariableArgCount;
 
 		if (expectedArgCount == ruleArgCount)
 		{
@@ -349,14 +351,16 @@ namespace ND
 			std::vector<std::string> nodeInputs = GetSubarguments(0, expectedNodeArgCount);
 			std::vector<std::string> premiseInputs = GetSubarguments(expectedNodeArgCount, expectedPremiseArgCount);
 			std::vector<std::string> formulaInputs = GetSubarguments(expectedNodeArgCount + expectedPremiseArgCount, expectedFormulaArgCount);
+			std::vector<std::string> variableInputs = GetSubarguments(expectedNodeArgCount + expectedPremiseArgCount + expectedFormulaArgCount, expectedVariableArgCount);
 
 			auto argNodes = RuleInputParser<SolverTreeNode, expectedNodeArgCount>::Parse(*this, nodeInputs);
 			auto argPremises = RuleInputParser<Premise, expectedPremiseArgCount>::Parse(*this, premiseInputs);
 			auto argFormulas = RuleInputParser<Formula, expectedFormulaArgCount>::Parse(*this, formulaInputs);
+			auto argVariables = RuleInputParser<Variable, expectedVariableArgCount>::Parse(*this, variableInputs);
 
-			if (argNodes.has_value() && argPremises.has_value() && argFormulas.has_value())
+			if (argNodes.has_value() && argPremises.has_value() && argFormulas.has_value() && argVariables.has_value())
 			{
-				T rule(m_solver.GetTree(), argNodes.value(), argPremises.value(), argFormulas.value());
+				T rule(m_solver.GetTree(), argNodes.value(), argPremises.value(), argFormulas.value(), argVariables.value());
 				success = m_solver.ApplyRule(rule, m_error);
 			}
 			else
@@ -428,11 +432,26 @@ namespace ND
 		FormulaParser formulaParser(input);
 		if (formulaParser.Success())
 		{
-			return formulaParser.GetFormula();
+			return formulaParser.GetResult();
 		}
 		else
 		{
-			m_error = "Failed to parse the formula you provided.";
+			m_error = formulaParser.GetError();
+			return std::nullopt;
+		}
+	}
+
+	template <>
+	std::optional<Variable> SolverParser::ParseRuleInput(const std::string& input)
+	{
+		VariableParser variableParser(input);
+		if (variableParser.Success())
+		{
+			return variableParser.GetResult();
+		}
+		else
+		{
+			m_error = variableParser.GetError();
 			return std::nullopt;
 		}
 	}

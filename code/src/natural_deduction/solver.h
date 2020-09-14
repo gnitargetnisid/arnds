@@ -21,6 +21,9 @@ namespace ND
 		Premise GetPremise(ID id) const { return m_premises.at(id); }
 		const std::map<ID, Premise>& GetPremises() const { return m_premises; }
 		bool PremiseExists(ID id) const { return m_premises.find(id) != m_premises.end(); }
+		bool GetAllPremisesEliminated() const;
+
+		std::optional<std::vector<Formula>> GetDerivedFormulas() const;
 
 		bool ApplyRule(BaseRule& rule, std::string& error);
 

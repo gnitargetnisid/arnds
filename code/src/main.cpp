@@ -22,6 +22,22 @@ int main()
 		{
 			std::cout << "Error occurred: " << parser.GetError() << std::endl;
 		}
+		else
+		{
+			if (solver.GetAllPremisesEliminated())
+			{
+				std::cout << "All premises have been eliminated. Derived formulas: " << std::endl;
+				auto derivedFormulas = solver.GetDerivedFormulas();
+				if (derivedFormulas.has_value())
+				{
+					for (const auto& formula : derivedFormulas.value())
+					{
+						formula->print(std::cout);
+					}
+				}
+				std::cout << std::endl;
+			}
+		}
 	}
 	return 0;
 }
