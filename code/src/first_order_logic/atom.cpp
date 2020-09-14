@@ -51,11 +51,6 @@ void Atom::getVars(VariablesSet &vars, bool free) const
     }
 }
 
-Arity Atom::getArity() const
-{
-	return m_terms.size();
-}
-
 Formula Atom::substitute(const Variable &v, const Term &t) const
 {
     std::vector<Term> terms;

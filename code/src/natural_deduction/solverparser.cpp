@@ -17,7 +17,7 @@ namespace ND
 	{
 		m_error = "";
 		std::string inputProcessed = input;
-		inputProcessed.erase(std::remove_if(inputProcessed.begin(), inputProcessed.end(), [](auto & c) { return std::isspace(c); }), inputProcessed.end());
+		inputProcessed.erase(std::remove_if(inputProcessed.begin(), inputProcessed.end(), std::isspace), inputProcessed.end());
 		std::transform(inputProcessed.begin(), inputProcessed.end(), inputProcessed.begin(), [](auto & c) { return std::tolower(c); });
 
 		std::vector<std::string> commandArguments;

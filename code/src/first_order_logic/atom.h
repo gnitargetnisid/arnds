@@ -9,7 +9,7 @@
 
 class Atom;
 
-using AtomMap = std::map<RelationSymbol, std::tuple<std::vector<std::shared_ptr<Atom>>, Arity>>;
+using AtomMap = std::map<RelationSymbol, std::vector<std::shared_ptr<Atom>>>;
 
 class Atom : public AtomicFormula
 {
@@ -25,8 +25,6 @@ public:
     virtual bool equalTo(const Formula & f) const;
   
     virtual void getVars(VariablesSet & vars, bool free = false) const;
-
-	Arity getArity() const;
   
     bool hasVariable(const Variable & v, bool free = false) const;
   

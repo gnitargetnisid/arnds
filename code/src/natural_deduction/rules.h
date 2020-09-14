@@ -16,24 +16,6 @@ namespace ND
 		virtual const std::string& GetError() const = 0;
 	};
 
-	template <size_t N, size_t offset = 0>
-	struct RuleHelper
-	{
-		static void ResolveInputNodes(Tuple<N, SolverTreeNode>& nodes)
-		{
-			std::get<offset>(nodes)->Resolve();
-			RuleHelper<N, offset + 1>::ResolveInputNodes(nodes);
-		}
-	};
-
-	template <size_t N>
-	struct RuleHelper<N, N>
-	{
-		static void ResolveInputNodes(Tuple<N, SolverTreeNode>& nodes)
-		{
-		}
-	};
-
 	template <size_t n_input_nodes, size_t n_premises, size_t n_formulas>
 	class Rule : public BaseRule
 	{
@@ -84,10 +66,14 @@ namespace ND
 		const SolverTree& m_tree;
 
 	private:
+		template <size_t offset = 0>
 		void ResolveInputNodes()
 		{
-			RuleHelper<n_input_nodes>::ResolveInputNodes(m_inputNodes);
+			GetInputNode<offset>()->Resolve();
+			ResolveInputNodes<offset + 1>();
 		}
+		template <>
+		void ResolveInputNodes<n_input_nodes>() {}
 
 		Tuple<n_input_nodes, SolverTreeNode> m_inputNodes;
 		Tuple<n_premises, Premise> m_premises;

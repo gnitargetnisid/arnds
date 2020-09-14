@@ -1,5 +1,3 @@
-#pragma once
-
 #include <string>
 #include <tuple>
 #include <optional>
@@ -19,13 +17,18 @@ public:
 	Formula GetFormula() const { return m_formula.value(); }
 	std::string GetError() const { return m_error; }
 
-	static const AtomMap& GetParsedPredicates() { return m_parsedPredicates; }
-	static const TermMap& GetParsedTerms() { return m_parsedTerms; }
+	const AtomMap& GetParsedPredicates() const { return m_parsedPredicates; }
+	const TermMap& GetParsedTerms() const { return m_parsedTerms; }
 
 private:
 	/* Parses a single formula/variable/term from the input string */
 	template <typename T>
 	std::optional<T> ParseInternal(const std::string& str);
+
+	/* Specializations of the previous function which we'll use */
+	template <> std::optional<Variable> ParseInternal(const std::string& variableString);
+	template <> std::optional<Term> ParseInternal(const std::string& termString);
+	template <> std::optional<Formula> ParseInternal(const std::string& formulaString);
 
 	/* Wrapper function --> parses the args string and converts/zips the arguments into a tuple expected by the caller */
 	template<typename... Ts>
@@ -44,10 +47,6 @@ private:
 
 	std::string m_error;
 	std::optional<Formula> m_formula;
-	static AtomMap m_parsedPredicates;
-	static TermMap m_parsedTerms;
+	AtomMap m_parsedPredicates;
+	TermMap m_parsedTerms;
 };
-
-template <> std::optional<Variable> FormulaParser::ParseInternal(const std::string& variableString);
-template <> std::optional<Term> FormulaParser::ParseInternal(const std::string& termString);
-template <> std::optional<Formula> FormulaParser::ParseInternal(const std::string& formulaString);
