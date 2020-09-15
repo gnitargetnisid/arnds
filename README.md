@@ -156,11 +156,11 @@ Expects the formula of *[forall_node]* to be a Forall formula. Derives the inter
 - Exists Elimination
 Expects the variable *[variable_x]* to be free in the formula of *[formula_node]*. Derives an Exists formula with the bound variable *[variable_x]* and with the internal formula as the formula of *[formula_node]*. Replaces all instances of variable *[variable_x]* with variable *[variable_y]* in the derived formula.
 
+```
 [EE] || [exists_node] [conclusion_node] [premise] [variable]
+```
 - Exists Elimination
 Expects the formula of *[forall_node]* to be an Exists formula. Expects the formula of *[premise]* to be syntactically equivalent to the internal formula of the formula of *[exists_node]* where all instances of the bound variable are replaced with the variable *[variable]*. Expects the variable *[variable]* to not be free in the formula of *[conclusion_node]*, as well as in any premises in the deduction tree of *[conclusion_node]*. Expects that at least a single instance of *[premise]* exists in the deduction tree of *[conclusion_node]*. Derives the internal formula of the formula in *[еxists_node]* where every instance of the bound variable is replaced with *[variable]*. Eliminates all instances of the premise *[premise]* which exist in the deduction tree of *[conclusion_node]*.
-```
-
 
 ### Formula syntax
 To parse formulas, function-like syntax is used. For example, Exists(x, And(Or(Not(R), P(x)), Imp(R, P(y)))) is an example of one formula.
